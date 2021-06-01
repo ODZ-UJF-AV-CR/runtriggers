@@ -1,0 +1,67 @@
+{{ define "head-aux" }}
+{{ end }}
+{{ define "content" }}
+    <div class="row">
+    <div class="col-lg-5">
+
+    <div class="d-flex justify-content-between flex-wrap align-items-center border-bottom">
+      <h3>Scripts</h3>
+      <a href="{{ "/scripts/new" | link }}" type="button" class="btn btn-info">New Script</a>
+    </div>
+
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col" style="width: 70%">Name</th>
+          <th scope="col">Owner</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {{ range .scripts }}
+        <tr>
+          <th scope="row">{{ .Name }}</th>
+          <td>{{ .Owner }}</td>
+          <th class="text-right">
+            <a href="{{ .ID | printf "/scripts/%d" | link }}" type="button" class="btn btn-info btn-sm">More</a>
+          </th>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+    </div>
+
+    <div class="col-lg-7">
+    <h3>Last Script Runs</h3>
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th scope="col">Script (Run No.)</th>
+          <th scope="col">Owner</th>
+          <th scope="col">Run Cause</th>
+          <th scope="col">Time</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {{ range .runs }}
+        <tr>
+          {{ if .Script }}
+          <td>{{ .Script.Name }} <span style="font-weight: bold">#{{ .RunNo }}</span> </td>
+          <td>{{ .Script.Owner }}</td>
+          {{ else }}
+          <td><span style="color: gray; font-style: italic">script deleted</span>  <span style="font-weight: bold">#{{ .RunNo }}</span></td>
+          <td></td>
+          {{ end }}
+          <td><span class="cause-{{ .Cause }}">{{ .Cause }}</span></td>
+          <td scope="row">{{ .StartTime.Format "2006-01-02 15:04:05" }}</td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+    </div>
+    </div>
+{{ end }}
+{{ template "page" . }}

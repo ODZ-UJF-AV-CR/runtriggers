@@ -1,0 +1,220 @@
+{{ define "head-aux" }}
+<script src="{{ "/static/jquery.min.js" | link }}"></script>
+<script src="{{ "/static/ace.js" | link }}"></script>
+<script>
+  // https://stackoverflow.com/questions/6440439/how-do-i-make-a-textarea-an-ace-editor/
+  // Hook up ACE editor to all textareas with data-editor attribute
+  $(function() {
+    $('textarea[data-editor]').each(function() {
+      var textarea = $(this);
+      var mode = textarea.data('editor');
+      var editDiv = $('<div>', {
+        position: 'absolute',
+        width: "100%", //textarea.width(),
+        height: textarea.height(),
+        'class': textarea.attr('class')
+      }).insertBefore(textarea);
+      textarea.css('display', 'none');
+      var editor = ace.edit(editDiv[0]);
+      editor.renderer.setShowGutter(textarea.data('gutter'));
+      editor.getSession().setValue(textarea.val());
+      editor.getSession().setMode("ace/mode/" + mode);
+      editor.setTheme("ace/theme/idle_fingers");
+
+      // copy back to textarea on form submit...
+      textarea.closest('form').submit(function() {
+        textarea.val(editor.getSession().getValue());
+      })
+    });
+  });
+  $(function() {
+    var ws = new WebSocket("ws" + window.location.protocol.substr(4) + "//" + window.location.host + "{{ printf "/scripts/%d/logs/%d/wstail" .Script.ID .Script.RunCounter | link }}");
+    ws.onmessage = function(e) {
+      $("#console").append(e.data + "\n");
+    };
+  });
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').popover();
+  });
+</script>
+</script>
+{{ end }}
+{{ define "container-class" -}}{{ if .Script.ID }}container-fluid{{ else }}container{{ end }}{{- end }}
+{{ define "content" }}
+  {{ if .Script.ID }}
+  <div class="row">
+  <div class="col-8">
+  <h3>Script: {{ .Script.Name }}</h3>
+
+  <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups">
+    <div class="btn-group" role="group">
+      <form method="post" action="{{ .Script.ID | printf "/scripts/%d/run" | link }}" class="inline mr-2">
+        <button type="submit" class="btn btn-secondary">Trigger Run</button>
+      </form>
+      <form method="post" action="{{ .Script.ID | printf "/scripts/%d/delete" | link }}" class="inline mr-2">
+        <button type="submit" class="btn btn-danger">Delete Script</button>
+      </form>
+    </div>
+    <div class="btn-group">
+      <span class="align-middle p-2">
+        {{ if .Script.Scheduled }} Next run scheduled <b>{{ .Script.Scheduled.UTC.Format "2006-01-02 15:04:05 UTC" }}</b> {{ else }} No run scheduled {{ end }}
+      </span>
+      <form method="put" action="{{ .Script.ID | printf "/scripts/%d/schedule" | link }}" class="input-group">
+        <input type="text" class="form-control" placeholder="Date & Time" name="Time">
+        <button type="submit" class="btn btn-dark">{{ if .Script.Scheduled }} Reschedule {{ else }} Schedule {{ end }}</button>
+      </form>
+      {{ if .Script.Scheduled }}
+      <form method="put" action="{{ .Script.ID | printf "/scripts/%d/unschedule" | link }}" class="input-group">
+        <button type="submit" class="btn btn-warning ml-1">Clear</button>
+      </form>
+      {{ end }}
+    </div>
+  </div>
+  {{ else }}
+  <h3>New Script</h3>
+  {{ end }}
+  <form method="post" action="{{ if .Script.ID }}{{ .Script.ID | printf "/scripts/%d" | link }}{{ else }}{{ "/scripts" | link }}{{ end }}">
+    <div class="form-group row">
+      <label for="Name" class="col-sm-2 col-form-label">Script Name</label>
+      <input type="text" class="col-sm-10 form-control {{ if .issues.Name }}is-invalid{{ end }}" id="Name" name="Name" placeholder="Enter script name" value="{{ .Script.Name }}">
+      {{ if .issues.Name }}<div class="invalid-feedback">{{ .issues.Name }}</div>{{ end }}
+    </div>
+    <div class="form-group row">
+      <label for="Owner" class="col-sm-2 col-form-label">Owner</label>
+      <input type="text" class="col-sm-10 form-control" id="Owner" name="Owner" value="{{ .Script.Owner }}" disabled>
+    </div>
+    <div class="form-group row">
+      <div class="col-sm-2">Schedule</div>
+      <div class="col-sm-10">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="PeriodicRunsEnabled" name="PeriodicRunsEnabled" {{ if .Script.PeriodicRunsEnabled -}} checked {{- end }}>
+          <label class="form-check-label" for="PeriodicRunsEnabled">
+            Enable periodic runs
+          </label>
+        </div>
+        <small class="form-text text-muted">When periodic runs are enabled, the script will be automatically run after the given period has elapsed since the last time the script has been run.</small>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="ScheduledRunsEnabled" name="ScheduledRunsEnabled" {{ if .Script.ScheduledRunsEnabled -}} checked {{- end }}>
+          <label class="form-check-label" for="ScheduledRunsEnabled">
+            Enable scheduled runs
+          </label>
+        </div>
+        <small class="form-text text-muted">When scheduled runs are enabled, the script can be programatically set to run at a specific time. See the manual.</small>
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="exampleInputPassword1" class="col-sm-2 col-form-label">Run Period</label>
+      <div class="col-sm-10">
+        <input type="text" class="col-sm-10 form-control {{ if .issues.RunPeriod }}is-invalid{{ end }}" id="RunPeriod" name="RunPeriod" value="{{ .Script.RunPeriod }}">
+        {{ if .issues.RunPeriod }}
+          <div class="invalid-feedback">
+          {{ .issues.RunPeriod }}
+          </div>
+        {{ end }}
+        <small class="form-text text-muted">Period is specified by number and unit, unit being one of 's', 'm', or 'h'.</small>
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-sm-2">Anomalous runs</div>
+      <div class="col-sm-10">
+        <b>Specify behaviour on anomalous runs</b>
+        <small class="form-text text-muted">If script exits with non-zero exit code, is killed, or its run is interrupted by e.g. the computer losing power, the script run is considered anomalous and the following options will take effect.</small>
+        <p></p>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="AutomaticRunsDisableOnError" name="AutomaticRunsDisableOnError" {{ if .Script.AutomaticRunsDisableOnError -}} checked {{- end }}>
+          <label class="form-check-label" for="AutomaticRunsDisableOnError">
+            On anomaly, disable scheduled and periodic runs
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="EmailNotification" name="EmailNotification" {{ if .Script.EmailNotification -}} checked {{- end }}>
+          <label class="form-check-label" for="EmailNotification">
+            On anomaly, send an email notification (once)
+          </label>
+        </div>
+        <small class="form-text text-muted">On the first encountered anomaly, a notification email is sent out. This option needs to be re-enabled after each email sent.</small>
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="EmailAddress" class="col-sm-2 col-form-label">Email Address for Notifications</label>
+      <input type="text" class="col-sm-10 form-control {{ if .issues.EmailAddress }}is-invalid{{ end }}" id="EmailAddress" name="EmailAddress" value="{{ .Script.EmailAddress }}">
+      {{ if .issues.EmailAddress }}
+        <div class="invalid-feedback">
+        {{ .issues.EmailAddress }}
+        </div>
+      {{ end }}
+    </div>
+    <div class="form-group">
+      <label for="Text">Script Contents</label>
+      <textarea class="form-control" id="Text" name="Text" rows="20" data-editor="text" data-gutter="1" style="width: 100%">{{ .Script.Text }}</textarea>
+    </div>
+    {{ if .Script.ID }}
+    <button type="submit" class="btn btn-primary">Save Script</button>
+    <button type="submit" name="save_and_run" value="1" class="btn btn-secondary">Save & Run Script</button>
+    {{ else }}
+    <button type="submit" class="btn btn-primary">Create New Script</button>
+    {{ end }}
+  </form>
+
+  {{ if .Script.ID }}
+  </div>
+  <div class="col-4">
+    <h3>Recent Runs of Script {{ .Script.Name }}</h3>
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col" style="width: 5em"></th>
+          <th scope="col">Duration</th>
+          <th scope="col">Code</th>
+          <th scope="col">Run Cause</th>
+          <th scope="col">Start</th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {{ range .runs }}
+        <tr>
+          <th scope="row">{{ .RunNo }}</th>
+          <td style="text-align: center">{{ if .State.String | eq "running" }}<span class="badge badge-pill badge-success">{{ .State }}</span>{{ else }}
+              {{ if .State.String }}<span class="badge badge-pill badge-warning">{{ .State }}</span>{{ end }}{{ end }}</td>
+          <td>{{ if .State.Running }}{{ else }}{{ .Duration | FormatDuration }}{{ end }}</td>
+          <td>{{ if .State.Running }}{{ else }}{{ .ExitCode }}{{ end }}</td>
+          <td><span class="cause-{{ .Cause }}">{{ .Cause }}</span></td>
+          <td>{{ .StartTime.Format "06-01-02 15:04:05.00" }}</td>
+          <td>
+            <a href="{{ printf "/scripts/%d/logs/%d" .ScriptID .RunNo | link }}">log</a>
+          </td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+    <h3>Last Run</h3>
+    <div class="btn-toolbar justify-content-between">
+      <!-- 
+      <div class="btn-group" role="group">
+        <a href="{{ printf "/scripts/%d/logs/%d" .Script.ID .Script.RunCounter | link }}" type="button" class="btn btn-info">View Full Log</a>
+      </div>
+      <div class="btn-group">
+      </div> -->
+      <div class="btn-group"></div>
+      <div class="btn-group">
+        {{ if .running }}
+          <span class="align-middle p-2" style="color: green; font-weight: bold;">script running</span>
+          <form method="post" action="{{ .Script.ID | printf "/scripts/%d/kill/15" | link }}" class="inline mr-2">
+            <button type="submit" class="btn btn-dark">SIGTERM</button>
+          </form>
+          <form method="post" action="{{ .Script.ID | printf "/scripts/%d/kill/9" | link }}" class="inline mr-2">
+            <button type="submit" class="btn btn-dark">SIGKILL</button>
+          </form>
+        {{ end }}
+      </div>
+    </div>
+    <pre id="console" style="height: 25em"></pre>
+  </div>
+  {{ end }}
+
+</div>
+{{ end }}
+{{ template "page" . }}

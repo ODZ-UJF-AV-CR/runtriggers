@@ -1,0 +1,35 @@
+{{ define "head-aux" }}
+{{ end }}
+{{ define "content" }}
+<div style="margin-top: 1em">
+    <h1>Manual to Runtriggers</h1>
+
+    <p>In Runtriggers you set up one or more "scripts", which are small programs to be run when defined conditions are met. Runtriggers takes care of running the programs, saving their textual output, saving the start time and run duration, and sending email notifications in case of extraordinary events.<p>
+
+    <h2>Script Contents</h2>
+
+    <p>Scripts can be written in any language of choice, as long as there is an interpreter Runtriggers can invoke. The first line of a script should specify path to the interpreter and optionally its arguments. The line starts with hashbang (the characters #!), so for example for a Python script you would write:</p>
+
+    <p><pre><code>#!/usr/bin/env python
+print("hello!")
+</code></pre></p>
+
+    <h2>Triggers</h2>
+
+    <p>A script will run when one of the following conditions is met:<p>
+
+    <ul>
+      <li>User has requested running the script through press of a button (<i>manual runs</i>)</li>
+      <li>Script has been scheduled to run at the current date and time (<i>scheduled runs</i>)</li>
+      <li>A specified time period has elapsed since the last time the script has been run (<i>periodic runs</i>)</li>
+    </ul>
+
+    <p>Scheduled and periodic runs are enabled in settings of the script.<p>
+
+    <h2>Anomalous Runs</h2>
+
+    <p>When a script is run and returns a non-zero exit code, or if there is some other issue with running the script, the run of the script is considered anomalous. You may opt to receive email notification when an anomalous run happens. When writing scripts, you can use non-zero exit code to signify any extraordinary event needing human attention.</p>
+</div>
+
+{{ end }}
+{{ template "page" . }}

@@ -1,0 +1,86 @@
+{{define "FlashMessages"}}{{range .}}
+  {{ if eq .ID "success"}} <div class="alert alert-success">{{ index .Args 0 }}</div> {{end}}
+  {{ if eq .ID "error"}} <div class="alert alert-danger">{{ index .Args 0 }}</div> {{end}}
+  {{ if eq .ID "info"}} <div class="alert alert-info">{{ index .Args 0 }}</div> {{end}}
+{{end}}{{end}}
+
+{{ define "page" }}
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title>{{ block "title" . -}} Runtriggers {{- end }}</title>
+  <link rel="stylesheet" href="{{ "/static/bootstrap.min.css" | link }}">
+
+  <style>
+body {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+h3 {
+  margin-top: 2rem;
+}
+
+hr {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+pre {
+  display: block;
+  padding: 9.5px;
+  margin: 0 0 10px;g
+  font-size: 13px;
+  line-height: 1.42857143;
+  color: #333;
+  word-break: break-all;
+  word-wrap: break-word;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.cause-periodic {
+  color: blueviolet;
+}
+
+.cause-scheduled {
+  color: darkgreen;
+}
+
+  </style>
+
+  {{ block "head-aux" . }}{{ end }}
+</head>
+
+<body>
+  <div class="{{ block "container-class" . -}} container {{- end }}">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="{{ "/" | link }}">Runtriggers</a>
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="{{ "/" | link }}">Home</a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="{{ "/manual" | link }}">Manual</a>
+      </li>
+    </ul>
+    <span class="navbar-text">
+      user: {{ .user }}
+    </span>
+  </nav>
+
+    {{template "FlashMessages" .flashMessages}}
+
+    {{ block "content" . }}
+    Hello
+    {{ end }}
+	</div>
+</body>
+
+</html>
+{{ end }}
