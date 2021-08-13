@@ -574,7 +574,7 @@ func initDatabase() {
 	}
 	for _, run := range interrupted {
 		run.Script = &Script{}
-		if err := db.Where("script_id=?", run.ScriptID).First(run.Script).Error; err != nil {
+		if err := db.Where("id=?", run.ScriptID).First(run.Script).Error; err != nil {
 			log.Printf("failed to load script: %s", err)
 		}
 		if run.Script.EmailNotification {
