@@ -491,7 +491,7 @@ func main() {
 	r.HandleFunc("/scripts/{id:[0-9]+}/unschedule", requireLogin(unscheduleScript))    // TODO: put only
 	r.HandleFunc("/scripts/{id:[0-9]+}/kill/{signo:[0-9]+}", requireLogin(killScript)) // TODO: put only
 	r.HandleFunc("/scripts/{id:[0-9]+}/logs/{runno:[0-9]+}", requireLogin(viewLog))
-	r.HandleFunc("/scripts/{id:[0-9]+}/logs/{runno:[0-9]+}/wstail", requireLogin(logWstail))
+	r.HandleFunc("/scripts/{id:[0-9]+}/wstail", requireLogin(logWstail))
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(staticPath))))
 	r.HandleFunc("/", requireLogin(listJobs))

@@ -41,7 +41,7 @@
     }
   }
   $(function() {
-    var ws = new WebSocket("ws" + window.location.protocol.substr(4) + "//" + window.location.host + "{{ printf "/scripts/%d/logs/%d/wstail" .Script.ID .Script.RunCounter | link }}");
+    var ws = new WebSocket("ws" + window.location.protocol.substr(4) + "//" + window.location.host + "{{ printf "/scripts/%d/wstail" .Script.ID | link }}");
     ws.onmessage = function(e) {
       m = JSON.parse(e.data);
       if (m.t == "logline") {
