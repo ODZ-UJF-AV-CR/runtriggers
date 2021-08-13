@@ -27,10 +27,30 @@
       })
     });
   });
+  function renderLastRun(state) {
+    $('#last-run').show();
+    if (state.running) {
+      $('#last-run #running-label').show()
+      $('#last-run #exited-label').css('display', 'none')
+      $('#last-run button').prop('disabled', false)
+    } else {
+      $('#last-run #exited-label').text("script exited (code " + state.code + ")")
+      $('#last-run #exited-label').show()
+      $('#last-run #running-label').css('display', 'none')
+      $('#last-run button').prop('disabled', true)
+    }
+  }
   $(function() {
     var ws = new WebSocket("ws" + window.location.protocol.substr(4) + "//" + window.location.host + "{{ printf "/scripts/%d/logs/%d/wstail" .Script.ID .Script.RunCounter | link }}");
     ws.onmessage = function(e) {
-      $("#console").append(e.data + "\n");
+      m = JSON.parse(e.data);
+      if (m.t == "logline") {
+        $("#console").append(m.line + "\n")
+      } else if (m.t == "flush") {
+        $("#console").text()
+      } else if (m.t == "state") {
+        renderLastRun(m)
+      }
     };
   });
   $(document).ready(function(){
@@ -190,28 +210,23 @@
         {{ end }}
       </tbody>
     </table>
+    <span id="last-run" style="display: none;">
     <h3>Last Run</h3>
     <div class="btn-toolbar justify-content-between">
-      <!-- 
-      <div class="btn-group" role="group">
-        <a href="{{ printf "/scripts/%d/logs/%d" .Script.ID .Script.RunCounter | link }}" type="button" class="btn btn-info">View Full Log</a>
-      </div>
-      <div class="btn-group">
-      </div> -->
       <div class="btn-group"></div>
       <div class="btn-group">
-        {{ if .running }}
-          <span class="align-middle p-2" style="color: green; font-weight: bold;">script running</span>
-          <form method="post" action="{{ .Script.ID | printf "/scripts/%d/kill/15" | link }}" class="inline mr-2">
-            <button type="submit" class="btn btn-dark">SIGTERM</button>
-          </form>
-          <form method="post" action="{{ .Script.ID | printf "/scripts/%d/kill/9" | link }}" class="inline mr-2">
-            <button type="submit" class="btn btn-dark">SIGKILL</button>
-          </form>
-        {{ end }}
+        <span id="running-label" class="align-middle p-2" style="color: green; font-weight: bold;">script running</span>
+        <span id="exited-label" class="align-middle p-2" style="color: #9B870C; font-weight: bold; display: none;">script exited</span>
+        <form method="post" action="{{ .Script.ID | printf "/scripts/%d/kill/15" | link }}" class="inline mr-2">
+          <button type="submit" class="btn btn-dark">SIGTERM</button>
+        </form>
+        <form method="post" action="{{ .Script.ID | printf "/scripts/%d/kill/9" | link }}" class="inline mr-2">
+          <button type="submit" class="btn btn-dark">SIGKILL</button>
+        </form>
       </div>
     </div>
     <pre id="console" style="height: 25em"></pre>
+    </span>
   </div>
   {{ end }}
 

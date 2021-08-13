@@ -40,6 +40,9 @@ type Script struct {
 	quitch        chan struct{}  `gorm:"-"`
 	killch        chan os.Signal `gorm:"-"`
 	updateschedch chan struct{}  `gorm:"-"`
+
+	changechM sync.Mutex
+	changech  chan struct{} `gorm:"-"`
 }
 
 func (s *Script) Copy() Script {
@@ -308,6 +311,9 @@ func (s *Script) run(cause Cause) {
 		return
 	}
 
+	s.broadcastChange()
+	defer s.broadcastChange()
+
 	if cause == CauseScheduled {
 		// clear the scheduled time
 		s.Scheduled = nil
@@ -410,6 +416,19 @@ waitloop:
 	fmt.Fprintf(f, "runtriggers: '%s' exited with code %d\n", argv[0], code)
 }
 
+func (s *Script) broadcastChange() {
+	s.changechM.Lock()
+	close(s.changech)
+	s.changech = make(chan struct{})
+	s.changechM.Unlock()
+}
+
+func (s *Script) getChangech() chan struct{} {
+	s.changechM.Lock()
+	defer s.changechM.Unlock()
+	return s.changech
+}
+
 func (s *Script) start() {
 	if s.started {
 		log.Printf("BUG: script started twice")
@@ -422,6 +441,7 @@ func (s *Script) start() {
 	s.killch = make(chan os.Signal)
 	s.manualch = make(chan struct{}, 1)
 	s.updateschedch = make(chan struct{}, 1)
+	s.changech = make(chan struct{})
 
 	go s.loop()
 }
