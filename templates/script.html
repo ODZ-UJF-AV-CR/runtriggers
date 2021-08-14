@@ -48,7 +48,7 @@
       if (m.t == "logline") {
         $("#console").append(m.line + "\n")
       } else if (m.t == "flush") {
-        $("#console").text()
+        $("#console").text("")
       } else if (m.t == "state") {
         renderLastRun(m)
         if (firstUpdate) {
